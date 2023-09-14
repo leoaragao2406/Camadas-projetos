@@ -44,25 +44,28 @@ def main():
 
         running = True
         total = 0
+        lista = []
 
         while running:
             bytes, nRx = com1.getData(1)
             n = int.from_bytes(bytes,"little" )
             rxBuffer, nRx = com1.getData(n)
+            lista.append(rxBuffer)
             total +=1
             if rxBuffer == b'\xff':
                 running = False
 
         print("Total comandos = {0}".format(total))
+        print("Lista comandos = {0}".format(lista))
         print("O envio do total comeca agora")
 
         txBuffer = total.to_bytes(3,"little")
-        com1.sendData(np.asarray(txBuffer))
+        #com1.sendData(np.asarray(txBuffer))
         
         txSize = com1.tx.getStatus()
         while txSize == 0:
             txSize = com1.tx.getStatus()
-        print("enviou o total {}".format(txSize))
+        print("enviou o total de tamanho: {}".format(txSize))
         
         print("-------------------------")
         print("Comunicação encerrada")
