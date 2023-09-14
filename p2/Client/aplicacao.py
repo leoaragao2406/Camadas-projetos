@@ -68,18 +68,16 @@ def main():
         
         #txBuffer = imagem em bytes!
         i=1
+        print("transmissão vai começar")
         while i < x:
             n_comando = random.randint(0,8)
             comando = lista[n_comando]
 
             print("Meu comando tem {0} bytes".format(len(comando)))
 
-            print("transmissão vai começar")
-
             com1.sendData(np.asarray(comando))  #as array apenas como boa pratica para casos de ter uma outra forma de dados
             time.sleep(0.5)
             txSize = com1.tx.getStatus()
-            print(i)
             i+=1
 
         #bit final
@@ -93,7 +91,6 @@ def main():
 
         if com1.rx.getBufferLen() == 0:
             print('Time Out')
-            print("-------------------------")
             print("Comunicação encerrada")
             print("-------------------------")
             com1.disable()
@@ -101,10 +98,11 @@ def main():
         rxBuffer, nRx = com1.getData(2)
 
         if (i) != int.from_bytes(rxBuffer, "little"):
-            print('ERRO!')
+            print('numero de comandos errado!')
+            exit()  
             
         else:
-            print('SUCESSO!')
+            print('SUCESSO,recebi o numero certo de comandos!')
             print(int.from_bytes(rxBuffer, "little"))
 
         # Encerra comunicação
