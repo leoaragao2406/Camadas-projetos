@@ -28,87 +28,104 @@ serialName = "COM3"                  # Windows(variacao de)
 def main():
     try:
         print("Iniciou o main")
-        #declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
-        #para declarar esse objeto é o nome da porta.
+        imageR= "p3/imgs/img.png"
         com1 = enlace(serialName)
-        
-    
         # Ativa comunicacao. Inicia os threads e a comunicação seiral 
         com1.enable()
-        #Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
         print("Abriu a comunicação")
+        print("Esperando byte sacrificio")
+        rxBuffer, nRx = com1.getData(1)
+        com1.rx.clearBuffer()
+        time.sleep(1)
+        print("Byte sacrificado")
+        #Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
         
-           
-                  
-        #aqui você deverá gerar os dados a serem transmitidos. 
-        #seus dados a serem transmitidos são um array bytes a serem transmitidos. Gere esta lista com o 
-        #nome de txBuffer. Esla sempre irá armazenar os dados a serem enviados.
-        imageR= "./imgs/img.png"
-        imageW= "./imgs/copia.png"
+        rxBuffer, nRx = com1.getData(1)
+        print('rxBuffer ======>', rxBuffer)
+        if rxBuffer == b'0':
+            com1.sendData(b'00')
+            com1.rx.clearBuffer()
+            time.sleep(1)
+            print("Handshake")
 
-        txBuffer= open(imageR, 'rb').read()
-        f=bytearray(txBuffer)
+        last_id = 0
+        running = True
+        eop_size = 3
+        payload = bytearray()
+        total = 1
+        erro = 0
+
+        while running:
+            rxBuffer, nRx = com1.getData(12)
+            pack_id = int.from_bytes(rxBuffer[0:4], byteorder ='big')
+            total_packs = int.from_bytes(rxBuffer[4:8], byteorder= 'big')
+            payload_size = int.from_bytes(rxBuffer[8:12], byteorder= 'big')
 
 
-        
-        #txBuffer = imagem em bytes!
-        
-       
-        print("meu array de bytes tem tamanho {}" .format(len(txBuffer)))
-        #faça aqui uma conferência do tamanho do seu txBuffer, ou seja, quantos bytes serão enviados.
-       
+            print("ID ====>", pack_id, "LAST ====>", last_id)
+            print("Total:", total_packs)
+            print("Payload size:",payload_size)
+
+            rxBuffer, nrx = com1.getData(payload_size+eop_size)
+            print("rxBuffer =====>", rxBuffer,"\n")
+            rec_payload = rxBuffer[:payload_size]
+            rec_eop = rxBuffer[payload_size:]
+
+
+            ver = True
             
-        #finalmente vamos transmitir os todos. Para isso usamos a funçao sendData que é um método da camada enlace.
-        
-        #faça um print para avisar que a transmissão vai começar.
-        print("transmissão vai começar")
-        #tente entender como o método send funciona!
-        #Cuidado! Apenas trasmita arrays de bytes!
-               
-        
-        com1.sendData(np.asarray(f))  #as array apenas como boa pratica para casos de ter uma outra forma de dados
-          
-        # A camada enlace possui uma camada inferior, TX possui um método para conhecermos o status da transmissão
-        # O método não deve estar fincionando quando usado como abaixo. deve estar retornando zero. Tente entender como esse método funciona e faça-o funcionar.
-        txSize = com1.tx.getStatus()
-        
+            if len(rxBuffer)-3 != (payload_size):
+                print("ERRO: TAMANHO PAYLOAD diferente do esperado")
+                ver = False
+                erro+=1
+                com1.disable()
 
-        print('enviou = {}' .format(txSize))
-        
-        #Agora vamos iniciar a recepção dos dados. Se algo chegou ao RX, deve estar automaticamente guardado
-        #Observe o que faz a rotina dentro do thread RX
-        #print um aviso de que a recepção vai começar.
-        print("recepção vai começar")
-        
-        #Será que todos os bytes enviados estão realmente guardadas? Será que conseguimos verificar?
-        #Veja o que faz a funcao do enlaceRX  getBufferLen
-      
-        #acesso aos bytes recebidos
-        txLen = len(txBuffer)
-        rxBuffer, nRx = com1.getData(txLen)
-        print("recebeu {} bytes" .format(len(rxBuffer)))
-        
-        #for i in range(len(rxBuffer)):
-            #print("recebeu {}" .format(rxBuffer[i]))
 
-        f = open(imageW,'wb')
-        f.write(rxBuffer)
-        f.close()
-        
+            if pack_id != (last_id + 1):
+                print("ERRO: ID diferente do esperado")
+                ver = False
+                erro+=1
+                com1.disable()
+            else:
+                last_id +=1
+
+
+            if rec_eop != b'\xff\xff\xff':
+                print("ERRO: TAMANHO PAYLOAD diferente do esperado")
+                ver = False
+                com1.disable()
+
+            if ver == True:
+                payload += rec_payload
+                if total_packs == total:
+                    print("Todos os Pacotes foram Recebidos")
+                    print(payload)
+                    print(type(payload))
 
             
+
+            txBuffer = pack_id.to_bytes(12, 'big') + b'00' + rec_eop
+            com1.sendData(txBuffer)
+
+            total +=1
+
+            if len(rec_payload) < 50:
+                running = False
+
     
-        # Encerra comunicação
-        print("-------------------------")
-        print("Comunicação encerrada")
-        print("-------------------------")
-        com1.disable()
-        
     except Exception as erro:
         print("ops! :-\\")
         print(erro)
         com1.disable()
-        
+    
+
+    f = open(imageR,'wb')
+    f.write(payload)
+    f.close()
+    print("-------------------------")
+    print("Comunicação encerrada")
+    print("-------------------------")
+    com1.disable()
 
     #so roda o main quando for executado do terminal ... se for chamado dentro de outro modulo nao roda
 if __name__ == "__main__":
