@@ -60,7 +60,7 @@ def main():
         print("O envio do total comeca agora")
 
         txBuffer = total.to_bytes(3,"little")
-        #com1.sendData(np.asarray(txBuffer))
+        com1.sendData(np.asarray(txBuffer))
         
         txSize = com1.tx.getStatus()
         while txSize == 0:
