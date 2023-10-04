@@ -1,0 +1,18 @@
+28/9/2023 14:53:53 /receb/ type: 1/ Size: 4 
+28/9/2023 14:53:54 /envio/ type: 2/ Size: 14 
+28/9/2023 14:53:58 /envio /type: 4/ Size: 14 
+28/9/2023 14:54:0 /receb/ type: 3/ Size: 128/ pacote recebido: 1/ total de pacotes 31 CRC: b'\xc4\x11' 
+28/9/2023 14:54:1 /envio/ type: 4/ Size: 14 
+28/9/2023 14:54:2 /receb/ type: 3/ Size: 128/ pacote recebido: 2/ total de pacotes 31 CRC: b'\xd7\xd8' 
+28/9/2023 14:54:3 /envio/ type: 4/ Size: 14 
+28/9/2023 14:54:4 /receb/ type: 3/ Size: 128/ pacote recebido: 3/ total de pacotes 31 CRC: b'P\xd4' 
+28/9/2023 14:54:5 /envio/ type: 4/ Size: 14 
+28/9/2023 14:54:6 /receb/ type: 3/ Size: 128/ pacote recebido: 5/ total de pacotes 31 CRC: b'[4' 
+28/9/2023 14:54:7 /envio/ type: 6/ Size: 14 
+28/9/2023 14:54:9 /envio /type: 4/ Size: 14 
+28/9/2023 14:54:12 /envio /type: 4/ Size: 14 
+28/9/2023 14:54:15 /envio /type: 4/ Size: 14 
+28/9/2023 14:54:18 /envio /type: 4/ Size: 14 
+28/9/2023 14:54:21 /envio /type: 4/ Size: 14 
+28/9/2023 14:54:25 /envio /type: 4/ Size: 14 
+28/9/2023 14:54:28 /envio /type: 5/ Size: 14 
