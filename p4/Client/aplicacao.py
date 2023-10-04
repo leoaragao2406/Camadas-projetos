@@ -14,13 +14,19 @@ from enlace import *
 import time
 import numpy as np
 import random
+import datetime
+import crcmod
+
+# Escolha um polinômio CRC (por exemplo, CRC-16)
+crc16 = crcmod.predefined.Crc("crc-16")
+
 
 # voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
 #   para saber a sua porta, execute no terminal :
 #   python -m serial.tools.list_ports
 # se estiver usando windows, o gerenciador de dispositivos informa a porta
 def makepayload(data):
-    tamanho = 50
+    tamanho = 114
 
     if len(data) < tamanho:
         payload = data[:]
@@ -31,14 +37,33 @@ def makepayload(data):
 
     return data, payload
 
+def calculate_crc(data):
+    # Calcula o CRC para os dados fornecidos
+    crc16.update(data)
+    crc_value = crc16.crcValue
+    return crc_value.to_bytes(2, byteorder='big')
 
-def datagram(packet: int, total_number_of_packets: int, payload: bytes):
-    payload_size = len(payload)
-    head = packet.to_bytes(4, 'big') + total_number_of_packets.to_bytes(4, 'big') + payload_size.to_bytes(4, 'big')
-    EOP = b'\xff\xff\xff'
-    
-    
+def makehead(field1, field2, field3, field4, field5, field6, field7, field8):
+    header = bytearray([field1, field2, field3, field4, field5, field6, field7, field8])
+    header= int.to_bytes(field1,1,byteorder='big') +int.to_bytes(field2,1,byteorder='big')+int.to_bytes(field3,1,byteorder='big')+int.to_bytes(field4,1,byteorder='big')+int.to_bytes(field5,1,byteorder='big')+int.to_bytes(field6,1,byteorder='big')+int.to_bytes(field7,1,byteorder='big')+int.to_bytes(field8,1,byteorder='big')
+    return header 
+
+
+def datagram(head,payload: bytes):
+    EOP = b'\xAA\xBB\xCC\xDD'
     return head + payload + EOP
+
+def escreve(status,tp_msg,tamanhototal,IDpacote=0,total_pacotes=0,crc_payload=0):
+    tmp = time.time()
+    with open ('Client1.txt') as file:
+        if status ==True :
+            if tp_msg ==3:
+                file.write(f'{tmp}/envio/{tp_msg}/{tamanhototal}/{IDpacote}/{total_pacotes}/{crc_payload}')
+            else:
+                file.write(f'{tmp}/envio/{tp_msg}/{tamanhototal}')
+        else:
+            file.write(f'{tmp}/receb/{tp_msg}/{tamanhototal}')
+    return None
 
 #use uma das 3 opcoes para atribuir à variável a porta usada
 #serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
@@ -46,8 +71,9 @@ def datagram(packet: int, total_number_of_packets: int, payload: bytes):
 serialName = "COM3"                  # Windows(variacao de)
 
 
+
 def main():
-    
+
     print("Iniciou o main")
     #declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
     #para declarar esse objeto é o nome da porta.
@@ -61,94 +87,126 @@ def main():
     com1.sendData(b'00')
     print("bit de sacrificio enviado")
     time.sleep(2)
-    com1.sendData(b'00')
-    print('enviou handshake' )
-    time.sleep(5)
-    cyclo=True
-    m=0
-    while cyclo==True:
-        if m==2:
-            com1.sendData(b'00')
-            print("bit de sacrificio enviado")
-            time.sleep(2)
-            com1.sendData(b'00')
-            print('enviou handshake' )
-            cyclo=False
 
-        if com1.rx.getBufferLen() == 0:
-            resposta = input("Servidor inativo. Tentar novamente? S/N: ").strip().upper()
+    inicio=False
+    num_servidor=12
 
-            if resposta == 'S':
-                com1.sendData(b'00')
-                time.sleep(5)
-                m+=1
-                
-            elif resposta == 'N':
-                print("Comunicação encerrada")
-                print("-------------------------")
-                com1.disable()
-                break
-            else:
-                print("Resposta inválida. Por favor, digite 'S' para Sim ou 'N' para Não.")
-        else:
-            rxBuffer,nRx = com1.getData(1)
-            if rxBuffer== b'0':
-                print('handshake finalizado')
-                cyclo= False
-            else:
-                print("não recebi o que foi combinado")
-                break
-            
-
-
-    #Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
-    print('inicio do envio do datagrama')
-
-    imageR= "p3\Client\imgs\img.png"
-
+    imageR= "p4\Client\imgs\img.png"
     img= open(imageR, 'rb').read()
     envio=np.asarray(bytearray(img))
 
-    img_size=len(envio)
-    print("tamanho do envio")
-    print(img_size)
+    while inicio==False:
+        
+        img_size=len(envio)
 
-    num_pacotes=img_size//50
-    
-    
-    if img_size % 50 != 0:
-        num_pacotes+= 1
-    else:
-        num_pacotes=num_pacotes
-    print("num pacotes")
-    print(num_pacotes)
-    i=0
+        num_pacotes=img_size//114
+        if img_size % 114 != 0:
+            num_pacotes+= 1
+        else:
+            num_pacotes=num_pacotes
 
-    while i < num_pacotes:
-        envio,payload = makepayload(envio)
-        print("payload formado")
+        head=makehead(1,num_servidor,0,num_pacotes,0,1,0,0)
+        datagrama1=datagram(head,b'')
+        com1.sendData(datagrama1)
+        #escreve(True,1,len(datagrama1))
+        print("Datagrama do tipo 1 enviado")
+        time.sleep(5)
 
-        txBuffer=datagram(i+1,int(num_pacotes),bytes(payload))
-        print("datagrama formado")
+        if com1.rx.getBufferLen() == 0:
+            inicio=False
+        else:
+            rxBuffer,nRx = com1.getData(14)
+            
+            if rxBuffer[0]==2:
+                inicio=True
+                print('datagrama do tipo2 recebido')
+                #escreve(False,int.from_bytes(rxBuffer[0], byteorder ='big'),14)
+            else:
+                inicio=False
+
+    cont=1
+    desligar=False
+    reenvio=False
+    erroforc=True
+    print('numero de pacotes-----------',num_pacotes)
+    while cont <= num_pacotes:
+        if desligar == True:
+            cont=num_pacotes+1
+            com1.disable
+            break
+        if reenvio ==False:
+            envio , payload = makepayload(envio)
+            print("payload formado")
+        else:
+            payload=payload
+
+        #if cont==2 and erroforc== True:
+            #cont=3
+            #erroforc=False
+
+
+        crc=calculate_crc(payload)
+        head= makehead(3,0,0,num_pacotes,cont,len(payload),0,0)
+        print('head+crc----------',head+crc)
+
+
+        txBuffer= datagram(head+crc,bytes(payload))
+        print('tamanho do datagrama',len(txBuffer))
         com1.rx.clearBuffer()
         com1.sendData(txBuffer)
+        print(f'datagrama {cont} enviado')
+        #escreve(True,3,len(txBuffer),cont,num_pacotes,crc)
+        tempo_envio1=time.time()
+        tempo_envio2=time.time()
 
-        print(f'pacote de numero {i+1} enviado')
-        time.sleep(1)
-
-        rxBuffer, nRx = com1.getData(16)
-        msg_received=rxBuffer[12]
-        if msg_received == b'0':
-                print('pacote recebido pelo servidor')
+        timer1=5
+        timer2=20
         
+        cyclo=True
+        while cyclo==True:
+            tempo_atual1=time.time()
+            tempo_atual2=time.time()
 
-        if len(payload)==0:
-            break
-            
-        i+=1
+            if tempo_atual1 - tempo_envio1 >=timer1:
+                com1.sendData(txBuffer)
+                #escreve(True,3,len(txBuffer),cont,num_pacotes,crc)
+                tempo_envio1 = tempo_atual1
+                print('tempo passou de 5 seg, datagrama reenviado')
+
+            if tempo_atual2 - tempo_envio2 >=timer2:
+                head=makehead(5,0,0,0,0,0,0,0)
+                txBuffer= datagram(head,b'')
+                com1.sendData(txBuffer)
+                #escreve(True,5,len(txBuffer))
+                print('tempo passou de 20 seg, comunicação encerrada')
+                desligar=True
+                com1.disable()
+                break
+
+
+            if com1.rx.getBufferLen() != 0:
+                rxBuffer,nRx = com1.getData(14)
+                #escreve(False,int.from_bytes(rxBuffer[0], byteorder ='big'),14)
+
+                if rxBuffer[0] ==6:
+                    print('datagrama do tipo 6 recebido')
+                    cont = rxBuffer[6]
+                    cyclo=False
+                    reenvio=True
+                    
+                if rxBuffer[0] ==4:
+                    reenvio=False
+                    print('datagrama do tipo 4 recebido')
+                    cont = rxBuffer[7] + 1
+                    cyclo=False
+
+                if rxBuffer[0] ==5:
+                    print('tempo passou de 20 seg, comunicação encerrada')
+                    desligar=True
+                    com1.disable()
+                    break
 
     # Encerra comunicação
-    print("envio completado")
     print("-------------------------")
     print("Comunicação encerrada")
     print("-------------------------")
