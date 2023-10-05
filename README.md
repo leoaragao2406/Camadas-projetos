@@ -18,3 +18,16 @@ Se o bit mais alto for 0, fazer xor com 00000;
 Ao final dessa operação, o resto da divisao é o CRC adiciona esse CRC no final dos dados para que o server recalcule essa divisão com os dados + CRC no final. Se o resultado for 0, não houve erro na transmissão
 
 """
+import crcmod
+
+def calculate_CRC(payload, polynomial):
+    CRC16 = crcmod.predefined.Crc("crc-16")
+    CRC16.update(payload)
+    crc_value = CRC16.crcValue
+    return crc_value.to_bytes(2, byteorder='big')
+
+a = calculate_CRC(bytearray([1, 2, 3]), "crc-16")
+b = calculate_CRC(bytearray([1, 2, 3]), 16)
+
+print(a)
+print(b)
