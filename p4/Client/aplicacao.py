@@ -16,9 +16,8 @@ import numpy as np
 import random
 import datetime
 import crcmod
+import struct
 
-# Escolha um polinômio CRC (por exemplo, CRC-16)
-crc16 = crcmod.predefined.Crc("crc-16")
 
 
 # voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
@@ -37,15 +36,15 @@ def makepayload(data):
 
     return data, payload
 
-def calculate_crc(data):
-    # Calcula o CRC para os dados fornecidos
-    crc16.update(data)
-    crc_value = crc16.crcValue
+
+def crc_from_payload(payload: bytes):
+    crc16 = crcmod.mkCrcFun(0x11021, initCrc=0x0000, xorOut=0x0000)
+    crc_value = crc16(payload)
     return crc_value.to_bytes(2, byteorder='big')
 
-def makehead(field1, field2, field3, field4, field5, field6, field7, field8):
-    header = bytearray([field1, field2, field3, field4, field5, field6, field7, field8])
-    header= int.to_bytes(field1,1,byteorder='big') +int.to_bytes(field2,1,byteorder='big')+int.to_bytes(field3,1,byteorder='big')+int.to_bytes(field4,1,byteorder='big')+int.to_bytes(field5,1,byteorder='big')+int.to_bytes(field6,1,byteorder='big')+int.to_bytes(field7,1,byteorder='big')+int.to_bytes(field8,1,byteorder='big')
+def makehead(field1, field2, field3, field4, field5, field6, field7, field8,field9,field10):
+    header = bytearray([field1, field2, field3, field4, field5, field6, field7, field8,field9,field10])
+    header= int.to_bytes(field1,1,byteorder='big') +int.to_bytes(field2,1,byteorder='big')+int.to_bytes(field3,1,byteorder='big')+int.to_bytes(field4,1,byteorder='big')+int.to_bytes(field5,1,byteorder='big')+int.to_bytes(field6,1,byteorder='big')+int.to_bytes(field7,1,byteorder='big')+int.to_bytes(field8,1,byteorder='big')+int.to_bytes(field9,1,byteorder='big')+int.to_bytes(field10,1,byteorder='big')
     return header 
 
 
@@ -53,16 +52,19 @@ def datagram(head,payload: bytes):
     EOP = b'\xAA\xBB\xCC\xDD'
     return head + payload + EOP
 
-def escreve(status,tp_msg,tamanhototal,IDpacote=0,total_pacotes=0,crc_payload=0):
-    tmp = time.time()
-    with open ('Client1.txt') as file:
-        if status ==True :
-            if tp_msg ==3:
-                file.write(f'{tmp}/envio/{tp_msg}/{tamanhototal}/{IDpacote}/{total_pacotes}/{crc_payload}')
+def escreve(status, tp_msg, tamanhototal, IDpacote=0, total_pacotes=0, crc_payload=0):
+    tmp = datetime.datetime.now()
+    file_name = 'p4/Client/textos/Client5.txt'
+    
+    with open(file_name, 'a') as file:  # Open the file in append mode ('a')
+        if status:
+            if tp_msg == 3:
+                file.write(f'{tmp}/envio/{tp_msg}/{tamanhototal}/{IDpacote}/{total_pacotes}/{crc_payload}\n')
             else:
-                file.write(f'{tmp}/envio/{tp_msg}/{tamanhototal}')
+                file.write(f'{tmp}/envio/{tp_msg}/{tamanhototal}\n')
         else:
-            file.write(f'{tmp}/receb/{tp_msg}/{tamanhototal}')
+            file.write(f'{tmp}/receb/{tp_msg}/{tamanhototal}\n')
+    
     return None
 
 #use uma das 3 opcoes para atribuir à variável a porta usada
@@ -86,18 +88,20 @@ def main():
     time.sleep(2)
     com1.sendData(b'00')
     print("bit de sacrificio enviado")
-    time.sleep(2)
+    escreve(True,0,0)
+    time.sleep(0.5)
 
     inicio=False
     num_servidor=12
 
-    imageR= "p4\Client\imgs\img.png"
+    imageR= "p4\Client\imgs\imagem.jpg"
     img= open(imageR, 'rb').read()
     envio=np.asarray(bytearray(img))
 
     while inicio==False:
         
         img_size=len(envio)
+        print('tamanho do envio---------',img_size)
 
         num_pacotes=img_size//114
         if img_size % 114 != 0:
@@ -105,10 +109,10 @@ def main():
         else:
             num_pacotes=num_pacotes
 
-        head=makehead(1,num_servidor,0,num_pacotes,0,1,0,0)
+        head=makehead(1,num_servidor,0,num_pacotes,0,1,0,0,0,0)
         datagrama1=datagram(head,b'')
         com1.sendData(datagrama1)
-        #escreve(True,1,len(datagrama1))
+        escreve(True,1,len(datagrama1))
         print("Datagrama do tipo 1 enviado")
         time.sleep(5)
 
@@ -120,7 +124,7 @@ def main():
             if rxBuffer[0]==2:
                 inicio=True
                 print('datagrama do tipo2 recebido')
-                #escreve(False,int.from_bytes(rxBuffer[0], byteorder ='big'),14)
+                escreve(False,rxBuffer[0],14)
             else:
                 inicio=False
 
@@ -140,22 +144,26 @@ def main():
         else:
             payload=payload
 
-        #if cont==2 and erroforc== True:
-            #cont=3
-            #erroforc=False
+        if cont==4 and erroforc== True:
+            cont=5
+            erroforc=False
 
 
-        crc=calculate_crc(payload)
-        head= makehead(3,0,0,num_pacotes,cont,len(payload),0,0)
+        crc=crc_from_payload(bytes(payload))
+        head= makehead(3,0,0,num_pacotes,cont,len(payload),0,0,0,0)
         print('head+crc----------',head+crc)
+        head=head[0:8]
+        
 
 
         txBuffer= datagram(head+crc,bytes(payload))
         print('tamanho do datagrama',len(txBuffer))
         com1.rx.clearBuffer()
         com1.sendData(txBuffer)
+
+
         print(f'datagrama {cont} enviado')
-        #escreve(True,3,len(txBuffer),cont,num_pacotes,crc)
+        escreve(True,3,len(txBuffer),cont,num_pacotes,crc)
         tempo_envio1=time.time()
         tempo_envio2=time.time()
 
@@ -169,15 +177,15 @@ def main():
 
             if tempo_atual1 - tempo_envio1 >=timer1:
                 com1.sendData(txBuffer)
-                #escreve(True,3,len(txBuffer),cont,num_pacotes,crc)
+                escreve(True,3,len(txBuffer),cont,num_pacotes,crc)
                 tempo_envio1 = tempo_atual1
                 print('tempo passou de 5 seg, datagrama reenviado')
 
             if tempo_atual2 - tempo_envio2 >=timer2:
-                head=makehead(5,0,0,0,0,0,0,0)
+                head=makehead(5,0,0,0,0,0,0,0,0,0)
                 txBuffer= datagram(head,b'')
                 com1.sendData(txBuffer)
-                #escreve(True,5,len(txBuffer))
+                escreve(True,5,len(txBuffer))
                 print('tempo passou de 20 seg, comunicação encerrada')
                 desligar=True
                 com1.disable()
@@ -186,7 +194,7 @@ def main():
 
             if com1.rx.getBufferLen() != 0:
                 rxBuffer,nRx = com1.getData(14)
-                #escreve(False,int.from_bytes(rxBuffer[0], byteorder ='big'),14)
+                escreve(False,rxBuffer[0],14)
 
                 if rxBuffer[0] ==6:
                     print('datagrama do tipo 6 recebido')
