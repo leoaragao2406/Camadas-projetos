@@ -1,0 +1,47 @@
+28/9/2023 15:12:11 /receb/ type: 1/ Size: 4 
+28/9/2023 15:12:12 /envio/ type: 2/ Size: 14 
+28/9/2023 15:12:16 /envio /type: 4/ Size: 14 
+28/9/2023 15:12:18 /receb/ type: 3/ Size: 128/ pacote recebido: 1/ total de pacotes 31 CRC: b'\xc4\x11' 
+28/9/2023 15:12:19 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:20 /receb/ type: 3/ Size: 128/ pacote recebido: 2/ total de pacotes 31 CRC: b'\xd7\xd8' 
+28/9/2023 15:12:21 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:22 /receb/ type: 3/ Size: 128/ pacote recebido: 3/ total de pacotes 31 CRC: b'P\xd4' 
+28/9/2023 15:12:23 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:24 /receb/ type: 3/ Size: 128/ pacote recebido: 5/ total de pacotes 31 CRC: b'[4' 
+28/9/2023 15:12:25 /envio/ type: 6/ Size: 14 
+28/9/2023 15:12:26 /receb/ type: 3/ Size: 128/ pacote recebido: 4/ total de pacotes 31 CRC: b'[4' 
+28/9/2023 15:12:27 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:28 /receb/ type: 3/ Size: 128/ pacote recebido: 5/ total de pacotes 31 CRC: b'\x1c\x89' 
+28/9/2023 15:12:29 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:30 /receb/ type: 3/ Size: 128/ pacote recebido: 6/ total de pacotes 31 CRC: b'\xd2u' 
+28/9/2023 15:12:32 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:33 /receb/ type: 3/ Size: 128/ pacote recebido: 7/ total de pacotes 31 CRC: b'\xf0"' 
+28/9/2023 15:12:34 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:35 /receb/ type: 3/ Size: 128/ pacote recebido: 8/ total de pacotes 31 CRC: b'\x98\x18' 
+28/9/2023 15:12:36 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:38 /envio /type: 4/ Size: 14 
+28/9/2023 15:12:41 /envio /type: 4/ Size: 14 
+28/9/2023 15:12:44 /envio /type: 4/ Size: 14 
+28/9/2023 15:12:47 /envio /type: 4/ Size: 14 
+28/9/2023 15:12:50 /envio /type: 4/ Size: 14 
+28/9/2023 15:12:51 /receb/ type: 3/ Size: 128/ pacote recebido: 8/ total de pacotes 31 CRC: b'\x98\x18' 
+28/9/2023 15:12:52 /envio/ type: 6/ Size: 14 
+28/9/2023 15:12:53 /receb/ type: 3/ Size: 128/ pacote recebido: 9/ total de pacotes 31 CRC: b'\x98\x18' 
+28/9/2023 15:12:54 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:55 /receb/ type: 3/ Size: 128/ pacote recebido: 10/ total de pacotes 31 CRC: b'\xc0\x8c' 
+28/9/2023 15:12:56 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:57 /receb/ type: 3/ Size: 128/ pacote recebido: 11/ total de pacotes 31 CRC: b'oS' 
+28/9/2023 15:12:58 /envio/ type: 4/ Size: 14 
+28/9/2023 15:12:59 /receb/ type: 3/ Size: 128/ pacote recebido: 12/ total de pacotes 31 CRC: b'\x1e\x84' 
+28/9/2023 15:13:0 /envio/ type: 4/ Size: 14 
+28/9/2023 15:13:1 /receb/ type: 3/ Size: 128/ pacote recebido: 13/ total de pacotes 31 CRC: b'\n7' 
+28/9/2023 15:13:2 /envio/ type: 4/ Size: 14 
+28/9/2023 15:13:3 /receb/ type: 3/ Size: 128/ pacote recebido: 14/ total de pacotes 31 CRC: b'\xe9\x1c' 
+28/9/2023 15:13:4 /envio/ type: 4/ Size: 14 
+28/9/2023 15:13:6 /envio /type: 4/ Size: 14 
+28/9/2023 15:13:9 /envio /type: 4/ Size: 14 
+28/9/2023 15:13:13 /envio /type: 4/ Size: 14 
+28/9/2023 15:13:16 /envio /type: 4/ Size: 14 
+28/9/2023 15:13:19 /envio /type: 4/ Size: 14 
+28/9/2023 15:13:22 /envio /type: 4/ Size: 14 
+28/9/2023 15:13:25 /envio /type: 5/ Size: 14 

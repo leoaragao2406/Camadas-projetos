@@ -9,10 +9,11 @@
 #esta é a camada superior, de aplicação do seu software de comunicação serial UART.
 #para acompanhar a execução e identificar erros, construa prints ao longo do código! 
 
-
+import crcmod
 from enlace import *
 import time
 import numpy as np
+from datetime import datetime
 
 # voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
 #   para saber a sua porta, execute no terminal :
@@ -23,101 +24,175 @@ import numpy as np
 #serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
 #serialName = "/dev/tty.usbmodem1411" # Mac    (variacao de)
 serialName = "COM3"                  # Windows(variacao de)
+str_list = []
 
+# Escolha um polinômio CRC (por exemplo, CRC-16)
+
+def crc_from_payload(payload: bytes):
+    crc16 = crcmod.mkCrcFun(0x11021, initCrc=0x0000, xorOut=0x0000)
+    crc_value = crc16(payload)
+    return crc_value.to_bytes(2, byteorder='big')
+
+
+def makepayload(data):
+    tamanho = 50
+
+    if len(data) < tamanho:
+        payload = data[:]
+        data = []
+    else:
+        payload = data[0:tamanho]
+        data = data[tamanho:]
+
+    return data, payload
+
+def makehead(field0, field1, field2, field3, field4, field5, field6, field7, field8, field9):
+    header = bytearray([field0,field1, field2, field3, field4, field5, field6, field7, field8, field9])
+    return header
+
+
+def datagrama_make(head,payload: bytes):
+    EOP = b'\xAA\xBB\xCC\xDD'
+    return head + payload + EOP
 
 def main():
-    try:
-        print("Iniciou o main")
-        imageR= "p3/imgs/img.png"
-        com1 = enlace(serialName)
-        # Ativa comunicacao. Inicia os threads e a comunicação seiral 
-        com1.enable()
-        print("Abriu a comunicação")
-        print("Esperando byte sacrificio")
-        rxBuffer, nRx = com1.getData(1)
-        com1.rx.clearBuffer()
-        time.sleep(1)
-        print("Byte sacrificado")
-        #Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
+
+    print("Iniciou o main")
+    imageR= "p4/imgs/img.png"
+    log1= "p4/logs/Serv1.txt"
+    log2 = "p4/logs/Serv2.txt"
+    log3 = "p4/logs/Serv3.txt"
+    log4 = "p4/logs/Serv4.txt"
+    com1 = enlace(serialName)
+    # Ativa comunicacao. Inicia os threads e a comunicação seiral 
+    com1.enable()
+    print("Abriu a comunicação")
+    print("Esperando byte sacrificio")
+    rxBuffer, nRx = com1.getData(1)
+    com1.rx.clearBuffer()
+    time.sleep(1)
+    print("Byte sacrificado")
+    #Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
+    
+    ocioso = True
+    server_id = 12
+
+    while ocioso:
+        head = com1.getData(10)[0]
         
-        rxBuffer, nRx = com1.getData(1)
-        print('rxBuffer ======>', rxBuffer)
-        if rxBuffer == b'0':
-            com1.sendData(b'00')
-            com1.rx.clearBuffer()
+        now = datetime.now()
+        buffer_len = com1.rx.getBufferLen()
+        string = f"{now.day}/{now.month}/{now.year} {now.hour}:{now.minute}:{now.second} /receb/ type: {head[0]}/ Size: {buffer_len} \n"
+        str_list.append(string)
+        pack_type = head[0]
+        s_id = head[1]
+        
+        if pack_type== 1 and s_id == server_id:
+            ocioso = False
             time.sleep(1)
-            print("Handshake")
+        else:
+            time.sleep(1)
 
-        last_id = 0
-        running = True
-        eop_size = 3
-        payload = bytearray()
-        total = 1
-        erro = 0
+    
+    now = datetime.now()
+    tx_head = makehead(2,0,0,0,0,0,0,0,0,0)
+    txBuffer = datagrama_make(tx_head, b'')
+    com1.sendData(txBuffer)
+    tx_len = com1.tx.getBufferLen()
+    string = f"{now.day}/{now.month}/{now.year} {now.hour}:{now.minute}:{now.second} /envio/ type: {tx_head[0]}/ Size: {tx_len} \n"
+    str_list.append(string)
 
-        while running:
-            rxBuffer, nRx = com1.getData(12)
-            pack_id = int.from_bytes(rxBuffer[0:4], byteorder ='big')
-            total_packs = int.from_bytes(rxBuffer[4:8], byteorder= 'big')
-            payload_size = int.from_bytes(rxBuffer[8:12], byteorder= 'big')
+    counter = 1
+    numPckg = head[3]
+    EOP =  b'\xaa\xbb\xcc\xdd'
+    timer1_env = time.time()
+    timer2_env = time.time()
+    com1.rx.clearBuffer()
+    payload = bytearray()
 
+    while counter <= numPckg:
+        time.sleep(1)
+        tempo=time.time()
+        if com1.rx.getBufferLen() >= 10:
+            timer1_env = time.time()
+            timer2_env = time.time()
+            message, nrx = com1.getData(com1.rx.getBufferLen())
+            head = message[0:10]
+            m_type = head[0]
+            now = datetime.now()
+            print("full message", [n for n in message])
 
-            print("ID ====>", pack_id, "LAST ====>", last_id)
-            print("Total:", total_packs)
-            print("Payload size:",payload_size)
-
-            rxBuffer, nrx = com1.getData(payload_size+eop_size)
-            print("rxBuffer =====>", rxBuffer,"\n")
-            rec_payload = rxBuffer[:payload_size]
-            rec_eop = rxBuffer[payload_size:]
-
-
-            ver = True
+            __payload = message[10:-4]
+            crc_calculado = crc_from_payload(__payload)
             
-            if len(rxBuffer)-3 != (payload_size):
-                print("ERRO: TAMANHO PAYLOAD diferente do esperado")
-                ver = False
-                erro+=1
-                com1.disable()
+            if m_type == 3 and head[-2:] == crc_calculado:
+                string = f"{now.day}/{now.month}/{now.year} {now.hour}:{now.minute}:{now.second} /receb/ type: {head[0]}/ Size: {len(message)}/ pacote recebido: {head[4]}/ total de pacotes {head[3]} CRC: {head[-2:]} \n"
+                str_list.append(string) 
+                print("CRC IGUAL", [n for n in crc_calculado], [n for n in head[-2:]])
+                if head[4] == counter and (len(message)-14) == head[5] and message[-4:] == EOP:
+                    payload += message[10:-4]
+                    tx_head = makehead(4,0,0,0,0,0,0,counter,0,0)
+                    datagram = datagrama_make(tx_head, b'')
+                    com1.sendData(datagram)
+                    counter+=1
+                else:
+                    tx_head = makehead(6,0,0,0,0,0,counter,0,0,0)
+                    datagram = datagrama_make(tx_head, b'')
+                    com1.sendData(datagram)
+            
+                now = datetime.now()
+                tx_len = len(datagram)
+                string = f"{now.day}/{now.month}/{now.year} {now.hour}:{now.minute}:{now.second} /envio/ type: {tx_head[0]}/ Size: {tx_len} \n"
+                str_list.append(string)
+            
+            
 
-
-            if pack_id != (last_id + 1):
-                print("ERRO: ID diferente do esperado")
-                ver = False
-                erro+=1
+            elif m_type == 3 and crc_calculado != head[-2:]:
+                print("CRC DIFERENTE", [n for n in crc_calculado], [n for n in head[-2:]])
+                print("-------------------------")
+                print("Comunicação encerrada")
+                print("-------------------------")
                 com1.disable()
+                exit()
+
             else:
-                last_id +=1
+                string = f"{now.day}/{now.month}/{now.year} {now.hour}:{now.minute}:{now.second} /receb/ type: {head[0]}/ Size: {com1.rx.getBufferLen()} \n"
+                str_list.append(string) 
 
 
-            if rec_eop != b'\xff\xff\xff':
-                print("ERRO: TAMANHO PAYLOAD diferente do esperado")
-                ver = False
-                com1.disable()
-
-            if ver == True:
-                payload += rec_payload
-                if total_packs == total:
-                    print("Todos os Pacotes foram Recebidos")
-                    print(payload)
-                    print(type(payload))
-
+        else:
+            if time.time()-timer2_env> 20:
+                    print("TIMER DE 20") 
+                    tx_head = makehead(5,0,0,0,0,0,0,0,0,0)
+                    datagram = datagrama_make(tx_head, b'')
+                    com1.sendData(datagram)
+                    now = datetime.now()
+                    tx_len = len(datagram)
+                    string = f"{now.day}/{now.month}/{now.year} {now.hour}:{now.minute}:{now.second} /envio /type: {tx_head[0]}/ Size: {tx_len} \n"
+                    str_list.append(string)
+                    break
             
+            elif time.time()-timer1_env> 2:
+                    print("TIMER 2")
+                    tx_head = makehead(4,0,0,0,0,0,0,counter,0,0)
+                    datagram = datagrama_make(tx_head, b'')
+                    com1.sendData(datagram)
+                    timer1_env = time.time()
 
-            txBuffer = pack_id.to_bytes(12, 'big') + b'00' + rec_eop
-            com1.sendData(txBuffer)
+                    now = datetime.now()
+                    tx_len = len(datagram)
+                    string = f"{now.day}/{now.month}/{now.year} {now.hour}:{now.minute}:{now.second} /envio /type: {tx_head[0]}/ Size: {tx_len} \n"
+                    str_list.append(string)
 
-            total +=1
 
-            if len(rec_payload) < 50:
-                running = False
 
-    
-    except Exception as erro:
-        print("ops! :-\\")
-        print(erro)
-        com1.disable()
-    
+                
+                
+    f = open(log4, 'w')     
+    for str in str_list:
+        f.write(str)
+    f.close()
+        
 
     f = open(imageR,'wb')
     f.write(payload)
